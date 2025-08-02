@@ -435,7 +435,26 @@ const transformMessages = async (messages) => {
   for (const item of messages) {
     switch (item.role) {
       case "system":
-        system_instruction = { parts: await transformMsg(item) };
+        if (typeof item.content === 'string') {
+          const processedSystemPrompt = item.content
+            .replace(/^\s*You are Raycast AI.*(\r?\n)?/gm, '')
+            .replace("You are a helpful assistant.", '')
+            .replace(/^\s*Current date:.*(\r?\n)?/gm, '')
+            .replace("Answer as concisely as possible", "")
+            .replace(/<user-preferences>.*?<\/user-preferences>/s, "")
+            .replace(/^\s*\n/gm, '')
+            .trim();
+
+          // Only set system_instruction if the processed prompt is not empty.
+          if (processedSystemPrompt) {
+            const modifiedItem = { ...item, content: processedSystemPrompt };
+            system_instruction = { parts: await transformMsg(modifiedItem) };
+          }
+        } else {
+          // If content is not a string (e.g., an array for multimodal input),
+          // handle it as before without modification.
+          system_instruction = { parts: await transformMsg(item) };
+        }
         continue;
       case "tool":
         // eslint-disable-next-line no-case-declarations
